@@ -1,4 +1,4 @@
-FROM php:apache
+FROM php:7.1.30-apache-stretch
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV LANG C.UTF-8
@@ -11,7 +11,7 @@ MAINTAINER Sigmapix <sigmapix@gmail.com>
 
 RUN echo "nameserver 8.8.8.8" | tee /etc/resolv.conf > /dev/null \
     && sed -e 's/main/main contrib/g' -i /etc/apt/sources.list \
-    && echo "deb http://http.debian.net/debian jessie-backports main" >> /etc/apt/sources.list \
+    && echo "deb http://http.debian.net/debian stretch-backports main" >> /etc/apt/sources.list \
     && apt-get clean \
     && apt-get update -y \
     && apt-get install -y --fix-missing \
@@ -27,12 +27,19 @@ RUN echo "nameserver 8.8.8.8" | tee /etc/resolv.conf > /dev/null \
         libfreetype6-dev \
         libjpeg62-turbo-dev \
         libmcrypt-dev \
-        libpng12-dev \
+        libpng-dev \
+        libzip-dev \
         libxml2-dev \
         xfonts-base \
         xfonts-75dpi \
+        xz-utils \
+        x11-utils \
+        fontconfig \
         fonts-liberation \
         logrotate \
+        locales \
+        less \
+        htop \
     && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
 RUN docker-php-ext-install -j$(nproc) \
@@ -47,6 +54,8 @@ RUN docker-php-ext-install -j$(nproc) \
         sockets \
         soap \
         opcache \
+        bcmath \
+        exif \
     && docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
     && docker-php-ext-install -j$(nproc) gd
 
@@ -54,12 +63,8 @@ RUN pecl install channel://pecl.php.net/apcu_bc-1.0.3
 RUN docker-php-ext-enable apcu --ini-name 10-docker-php-ext-apcu.ini
 RUN docker-php-ext-enable apc --ini-name 20-docker-php-ext-apc.ini
 
-RUN apt-get install -y xz-utils x11-utils wget
-
-RUN docker-php-ext-install -j$(nproc) bcmath
-RUN wget https://downloads.wkhtmltopdf.org/0.12/0.12.4/wkhtmltox-0.12.4_linux-generic-amd64.tar.xz -P /tmp/ && \
-    tar xf /tmp/wkhtmltox-0.12.4_linux-generic-amd64.tar.xz -C /tmp/ && \
-        cp /tmp/wkhtmltox/bin/wkhtmltopdf /usr/local/bin/
+RUN wget https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.5/wkhtmltox_0.12.5-1.stretch_amd64.deb -P /tmp/ && \
+    dpkg -i /tmp/wkhtmltox_0.12.5-1.stretch_amd64.deb
 
 ADD update-exim4.conf /etc/exim4/update-exim4.conf.conf
 RUN /usr/sbin/update-exim4.conf
@@ -67,11 +72,20 @@ RUN /usr/sbin/update-exim4.conf
 # PhpUnit ( phpunit --exclude-group ignore -v --debug -c app src/ )
 RUN wget https://phar.phpunit.de/phpunit.phar -O /usr/local/bin/phpunit && chmod +x /usr/local/bin/phpunit
 
+RUN curl -sL https://deb.nodesource.com/setup_11.x | bash - && apt-get update && apt-get install -y nodejs
+#    apt-get update && apt-get install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates libappindicator1 libnss3 lsb-release xdg-utils && \
+#    npm install --global --unsafe-perm puppeteer && \
+#    chmod -R o+rx /usr/lib/node_modules/puppeteer/.local-chromium
+
 ADD entrypoint.sh /entrypoint.sh
 RUN chmod a+x /entrypoint.sh
 
+ADD php.ini /usr/local/etc/php/conf.d/php.custom.ini
+ADD apache-config.conf /etc/apache2/sites-enabled/000-default.conf
+
 RUN a2enmod rewrite
 RUN a2enmod remoteip
+RUN a2enmod ssl
 
 CMD ["/entrypoint.sh"]
 
