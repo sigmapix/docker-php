@@ -1,11 +1,10 @@
-PHP_VERSION = 7.2.21
+export PHP_VERSION=7.3.11
 
 docker build --no-cache --rm -f Dockerfile.${PHP_VERSION}-apache-buster .
 
-# get SOURCE_IMAGE id
+# export SOURCE_IMAGE=XXXXXXXXXXXX
 
 docker tag ${SOURCE_IMAGE} sigmapix/php:${PHP_VERSION}-apache-buster
-push sigmapix/php:${PHP_VERSION}-apache-buster
 docker push sigmapix/php:${PHP_VERSION}-apache-buster
 
 git add Dockerfile.${PHP_VERSION}-apache-buster
