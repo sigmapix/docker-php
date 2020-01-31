@@ -24,7 +24,7 @@ RUN apt-get update \
     cron vim ncurses-term zlib1g-dev libicu-dev libfreetype6-dev libjpeg62-turbo-dev \
 	libmcrypt-dev libpng-dev libzip-dev libxml2-dev xfonts-base xfonts-75dpi xz-utils \
 	x11-utils fontconfig fonts-liberation logrotate less htop apt-transport-https git \
-	mercurial xvfb apt locales sudo openssh-client ca-certificates tar gzip parallel \
+	mercurial xvfb apt locales sudo openssh-client ca-certificates tar gzip parallel libxslt-dev \
 	net-tools netcat unzip zip bzip2 gnupg curl wget make gcc autoconf libc-dev pkg-config \
   && rm -rf /var/lib/apt/lists/*
 
@@ -65,6 +65,7 @@ RUN docker-php-ext-install -j$(nproc) \
         opcache \
         bcmath \
         exif \
+        xsl \
     && docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
     && docker-php-ext-install -j$(nproc) gd
 
