@@ -1,4 +1,4 @@
-export PHP_VERSION=7.3.11
+export PHP_VERSION=7.4.3
 
 docker build --no-cache --rm -f Dockerfile.${PHP_VERSION}-apache-buster .
 
