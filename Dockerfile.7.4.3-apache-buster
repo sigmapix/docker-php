@@ -1,0 +1,146 @@
+ARG PHP_VERSION=7.4.3
+
+FROM php:${PHP_VERSION}-apache-buster
+
+ENV DEBIAN_FRONTEND noninteractive
+ENV LANG C.UTF-8
+ENV LANGUAGE C.UTF-8
+ENV LC_ALL C.UTF-8
+ENV TERM xterm
+ENV WWW_ROOT="/var/www"
+
+MAINTAINER Sigmapix <sigmapix@gmail.com>
+
+# Make sure PATH includes ~/.local/bin : https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=839155
+#
+RUN echo 'PATH="$HOME/.local/bin:$PATH"' >> /etc/profile.d/user-local-path.sh
+
+# Main Packages
+# (man directory is missing in some base images : https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=863199)
+#
+RUN apt-get update \
+  && mkdir -p /usr/share/man/man1 \
+  && apt-get install -y \
+    cron vim ncurses-term zlib1g-dev libicu-dev libfreetype6-dev libjpeg62-turbo-dev \
+	libmcrypt-dev libpng-dev libzip-dev libxml2-dev xfonts-base xfonts-75dpi xz-utils \
+	x11-utils fontconfig fonts-liberation logrotate less htop apt-transport-https git \
+	mercurial xvfb apt locales sudo openssh-client ca-certificates tar gzip parallel libxslt-dev \
+	net-tools netcat unzip zip bzip2 gnupg curl wget make gcc autoconf libc-dev pkg-config \
+  && rm -rf /var/lib/apt/lists/*
+
+# Set timezone to UTC by default
+#
+RUN ln -sf /usr/share/zoneinfo/Etc/UTC /etc/localtime
+
+# Use unicode
+#
+RUN locale-gen C.UTF-8 || true
+ENV LANG=C.UTF-8
+
+# Install composer (+prestissimo+autocomplete)
+#
+RUN php -r "copy('https://raw.githubusercontent.com/composer/getcomposer.org/master/web/installer', 'composer-setup.php');" && \
+    php composer-setup.php && \
+    php -r "unlink('composer-setup.php');" && \
+    mv composer.phar /usr/local/bin/composer
+RUN composer global require hirak/prestissimo && \
+    composer global require bamarni/symfony-console-autocomplete
+
+# Install XDebug
+#
+RUN (pecl install xdebug || pecl install xdebug-2.5.5 || pecl install xdebug-2.7.1) && docker-php-ext-enable xdebug
+
+# Install common php extensions
+#
+RUN docker-php-ext-configure intl && docker-php-ext-install -j$(nproc) intl
+RUN docker-php-ext-configure zip --with-libzip && docker-php-ext-install -j$(nproc) zip
+RUN docker-php-ext-install -j$(nproc) \
+	    mysqli \
+        mbstring \
+        pdo \
+        pdo_mysql \
+    	iconv \
+        sockets \
+        soap \
+        opcache \
+        bcmath \
+        exif \
+        xsl \
+    && docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
+    && docker-php-ext-install -j$(nproc) gd
+
+# Install php apcu/opcache/mcrypt
+#
+RUN pecl install apcu-5.1.17 && pecl clear-cache
+RUN pecl install --nodeps mcrypt-snapshot && pecl clear-cache
+#RUN docker-php-ext-enable opcache --ini-name 10-docker-php-ext-opcache.ini
+RUN docker-php-ext-enable mcrypt --ini-name 10-docker-php-ext-mcrypt.ini
+RUN docker-php-ext-enable apcu --ini-name 10-docker-php-ext-apcu.ini
+
+# Supercronic
+#
+RUN SUPERCRONIC_URL=https://github.com/aptible/supercronic/releases/download/v0.1.5/supercronic-linux-amd64 && \
+    SUPERCRONIC=supercronic-linux-amd64 && \
+    SUPERCRONIC_SHA1SUM=9aeb41e00cc7b71d30d33c57a2333f2c2581a201 && \
+    curl -fsSLO "$SUPERCRONIC_URL" && \
+    echo "${SUPERCRONIC_SHA1SUM}  ${SUPERCRONIC}" | sha1sum -c - && \
+    chmod +x "$SUPERCRONIC" && \
+    mv "$SUPERCRONIC" "/usr/local/bin/${SUPERCRONIC}" && \
+    ln -s "/usr/local/bin/${SUPERCRONIC}" /usr/local/bin/supercronic
+
+# Node
+#
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gnupg && \
+    curl -sL https://deb.nodesource.com/setup_12.x | bash - && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends nodejs && \
+    curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
+    echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends yarn && \
+    npm install -g npm
+
+# wkhtmltopdf
+#
+RUN wget https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.5/wkhtmltox_0.12.5-1.stretch_amd64.deb -P /tmp/ && \
+    dpkg -i /tmp/wkhtmltox_0.12.5-1.stretch_amd64.deb
+
+# Exim
+#
+ADD update-exim4.conf /etc/exim4/update-exim4.conf.conf
+RUN /usr/sbin/update-exim4.conf
+
+# PhpUnit ( phpunit --exclude-group ignore -v --debug -c app src/ )
+#
+RUN wget https://phar.phpunit.de/phpunit.phar -O /usr/local/bin/phpunit && chmod +x /usr/local/bin/phpunit
+
+# Entrypoint
+#
+ADD entrypoint.sh /entrypoint.sh
+RUN chmod a+x /entrypoint.sh
+
+# PHP & Apache default configs
+#
+ADD php.ini /usr/local/etc/php/conf.d/php.custom.ini
+ADD apache-config.conf /etc/apache2/sites-enabled/000-default.conf
+
+# Let's register a servername to remove the message "apache2: Could not reliably determine the server's fully qualified domain name, using 172.17.0.2. Set the 'ServerName' directive globally to suppress this message"
+#
+RUN echo "ServerName localhost" > /etc/apache2/conf-available/servername.conf
+RUN a2enconf servername
+
+# mysql-client tools
+#
+RUN apt-get update && apt-get install -y default-mysql-client
+
+# Apache modules
+#
+RUN a2enmod rewrite
+RUN a2enmod remoteip
+RUN a2enmod ssl
+
+CMD ["/entrypoint.sh"]
+
+EXPOSE 80
+EXPOSE 443
