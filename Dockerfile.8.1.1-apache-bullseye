@@ -43,8 +43,7 @@ RUN php -r "copy('https://raw.githubusercontent.com/composer/getcomposer.org/mas
     php composer-setup.php && \
     php -r "unlink('composer-setup.php');" && \
     mv composer.phar /usr/local/bin/composer
-RUN composer global require hirak/prestissimo && \
-    composer global require bamarni/symfony-console-autocomplete
+RUN composer global require bamarni/symfony-console-autocomplete
 
 # Install XDebug
 #
