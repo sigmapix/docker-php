@@ -62,8 +62,8 @@ fi
 # build the image with the specified version of PHP
 docker buildx build -f Dockerfile.${VERSION}-apache-bookworm . --progress plain --platform=linux/amd64 -t sigmapix/php:${VERSION}-apache-bookworm-amd64 --push
 docker buildx build -f Dockerfile.${VERSION}-apache-bookworm . --progress plain --platform=linux/arm64 -t sigmapix/php:${VERSION}-apache-bookworm-arm64 --push
-docker manifest create sigmapix/php:${VERSION}-apache-bookworm sigmapix/php:${VERSION}-apache-bookworm-arm64 sigmapix/php:${VERSION}-apache-bookworm-amd64
-docker manifest push sigmapix/php:${VERSION}-apache-bookworm
+docker manifest create --amend sigmapix/php:${VERSION}-apache-bookworm sigmapix/php:${VERSION}-apache-bookworm-arm64 sigmapix/php:${VERSION}-apache-bookworm-amd64
+docker manifest push --purge sigmapix/php:${VERSION}-apache-bookworm
 
 echo "🎉 Build completed successfully! 🎉"
 exit 0
