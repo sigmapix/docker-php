@@ -2,14 +2,12 @@ ARG PHP_VERSION=8.4.5
 
 FROM php:${PHP_VERSION}-apache-bookworm
 
-ENV DEBIAN_FRONTEND noninteractive
-ENV LANG C.UTF-8
-ENV LANGUAGE C.UTF-8
-ENV LC_ALL C.UTF-8
-ENV TERM xterm
+ENV DEBIAN_FRONTEND=noninteractive
+ENV LANG=C.UTF-8
+ENV LANGUAGE=C.UTF-8
+ENV LC_ALL=C.UTF-8
+ENV TERM=xterm
 ENV WWW_ROOT="/var/www"
-
-MAINTAINER Sigmapix <sigmapix@gmail.com>
 
 # Make sure PATH includes ~/.local/bin : https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=839155
 #
@@ -29,7 +27,7 @@ RUN apt-get update \
   && mkdir -p /usr/share/man/man1 \
   && apt-get install -y \
     cron vim ncurses-term zlib1g-dev libicu-dev libfreetype6-dev libjpeg62-turbo-dev \
-	libmcrypt-dev libpng-dev libzip-dev libxml2-dev xfonts-base xfonts-75dpi xz-utils \
+	libmcrypt-dev libpng-dev libwebp-dev libxpm-dev libzip-dev libxml2-dev xfonts-base xfonts-75dpi xz-utils \
 	x11-utils fontconfig fonts-liberation logrotate less htop apt-transport-https git \
 	mercurial xvfb apt locales sudo openssh-client ca-certificates tar gzip parallel libxslt-dev \
 	net-tools unzip zip bzip2 gnupg curl wget make gcc autoconf libc-dev pkg-config \
@@ -73,7 +71,7 @@ RUN docker-php-ext-install -j$(nproc) \
         bcmath \
         exif \
         xsl \
-    && docker-php-ext-configure gd --with-freetype=/usr/include/ --with-jpeg=/usr/include/ \
+    && docker-php-ext-configure gd --with-freetype=/usr/include/ --with-jpeg=/usr/include/ --with-webp=/usr/include/ \
     && docker-php-ext-install -j$(nproc) gd
 
 # Install php apcu/opcache/mcrypt
