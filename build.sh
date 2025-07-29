@@ -2,7 +2,7 @@
 
 # extract all versions of PHP from local files named Dockerfile.VERSION-*
 # example: Dockerfile.7.1.30-apache-stretch -> 7.1.30 / Dockerfile.8.3.12-frankenphp.1.2.5-bookworm -> 8.3.12
-versions=$(ls Dockerfile.* | grep -oP 'Dockerfile.\K[0-9]+\.[0-9]+\.[0-9]+')
+versions=$(ls Dockerfile.* | awk '{gsub(/^Dockerfile\./, ""); print}')
 # sort the versions in descending order
 IFS=$'\n' versions=($(sort -rV <<<"${versions[*]}"))
 
@@ -60,10 +60,10 @@ if [[ ! $confirm =~ ^[Yy]$|^$|^yes$ ]]; then
 fi
 
 # build the image with the specified version of PHP
-docker buildx build -f Dockerfile.${VERSION}-apache-bookworm . --progress plain --platform=linux/amd64 -t sigmapix/php:${VERSION}-apache-bookworm-amd64 --push
-docker buildx build -f Dockerfile.${VERSION}-apache-bookworm . --progress plain --platform=linux/arm64 -t sigmapix/php:${VERSION}-apache-bookworm-arm64 --push
-docker manifest create --amend sigmapix/php:${VERSION}-apache-bookworm sigmapix/php:${VERSION}-apache-bookworm-arm64 sigmapix/php:${VERSION}-apache-bookworm-amd64
-docker manifest push --purge sigmapix/php:${VERSION}-apache-bookworm
+docker buildx build -f Dockerfile.${VERSION} . --progress plain --platform=linux/amd64 -t sigmapix/php:${VERSION}-amd64 --push
+docker buildx build -f Dockerfile.${VERSION} . --progress plain --platform=linux/arm64 -t sigmapix/php:${VERSION}-arm64 --push
+docker manifest create --amend sigmapix/php:${VERSION} sigmapix/php:${VERSION}-arm64 sigmapix/php:${VERSION}-amd64
+docker manifest push --purge sigmapix/php:${VERSION}
 
 echo "🎉 Build completed successfully! 🎉"
 exit 0
