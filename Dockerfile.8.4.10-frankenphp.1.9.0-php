@@ -1,0 +1,12 @@
+FROM dunglas/frankenphp:1.9.0-php8.4.10-alpine
+
+RUN set -eux; \
+	install-php-extensions \
+		apcu \
+		intl \
+		opcache \
+		zip \
+		pdo_mysql \
+		exif \
+		gd \
+	;
