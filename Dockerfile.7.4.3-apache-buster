@@ -1,6 +1,7 @@
 ARG PHP_VERSION=7.4.3
 
 FROM php:${PHP_VERSION}-apache-buster
+ARG TARGETARCH
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV LANG C.UTF-8
@@ -43,12 +44,7 @@ RUN php -r "copy('https://raw.githubusercontent.com/composer/getcomposer.org/mas
     php composer-setup.php && \
     php -r "unlink('composer-setup.php');" && \
     mv composer.phar /usr/local/bin/composer
-RUN composer global require hirak/prestissimo && \
-    composer global require bamarni/symfony-console-autocomplete
-
-# Install XDebug
-#
-RUN (pecl install xdebug || pecl install xdebug-2.5.5 || pecl install xdebug-2.7.1) && docker-php-ext-enable xdebug
+RUN composer global require bamarni/symfony-console-autocomplete
 
 # Install common php extensions
 #

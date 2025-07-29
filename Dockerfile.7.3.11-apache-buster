@@ -1,6 +1,7 @@
 ARG PHP_VERSION=7.3.11
 
 FROM php:${PHP_VERSION}-apache-buster
+ARG TARGETARCH
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV LANG C.UTF-8
@@ -36,15 +37,6 @@ RUN ln -sf /usr/share/zoneinfo/Etc/UTC /etc/localtime
 #
 RUN locale-gen C.UTF-8 || true
 ENV LANG=C.UTF-8
-
-# Install composer (+prestissimo+autocomplete)
-#
-RUN php -r "copy('https://raw.githubusercontent.com/composer/getcomposer.org/master/web/installer', 'composer-setup.php');" && \
-    php composer-setup.php && \
-    php -r "unlink('composer-setup.php');" && \
-    mv composer.phar /usr/local/bin/composer
-RUN composer global require hirak/prestissimo && \
-    composer global require bamarni/symfony-console-autocomplete
 
 # Install XDebug
 #
@@ -103,8 +95,8 @@ RUN apt-get update && \
 
 # wkhtmltopdf
 #
-RUN wget https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.5/wkhtmltox_0.12.5-1.stretch_amd64.deb -P /tmp/ && \
-    dpkg -i /tmp/wkhtmltox_0.12.5-1.stretch_amd64.deb
+RUN wget "https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.buster_${TARGETARCH}.deb" -P /tmp/ && \
+    dpkg -i "/tmp/wkhtmltox_0.12.6-1.buster_${TARGETARCH}.deb"
 
 # Exim
 #
